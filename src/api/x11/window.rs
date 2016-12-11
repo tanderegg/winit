@@ -369,7 +369,7 @@ impl Window {
         // finally creating the window
         let window = unsafe {
             let win = (display.xlib.XCreateWindow)(display.display, root, 0, 0, dimensions.0 as libc::c_uint,
-                dimensions.1 as libc::c_uint, 0, ffi::CopyFromParent, ffi::InputOutput as libc::c_uint,
+                dimensions.1 as libc::c_uint, 0, 32, ffi::InputOutput as libc::c_uint,
                 ffi::CopyFromParent as *mut _, window_attributes,
                 &mut set_win_attr);
             display.check_errors().expect("Failed to call XCreateWindow");
