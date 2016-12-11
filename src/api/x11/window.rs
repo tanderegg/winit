@@ -377,6 +377,8 @@ impl Window {
             assert!(!vi.is_null());
             assert!(num_visuals == 1);
 
+            println!("Visual found!");
+
             let vi_copy = ptr::read(vi as *const _);
             (display.xlib.XFree)(vi as *mut _);
             vi_copy
