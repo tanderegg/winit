@@ -367,10 +367,25 @@ impl Window {
         }
 
         // finally creating the window
+        let visual = unsafe {
+            let mut template: ffi::XVisualInfo = mem::zeroed();
+            let mut num_visuals = 0;
+            template.visualid = 0x28;
+            let vi = (display.xlib.XGetVisualInfo)(display.display, ffi::VisualIDMask,
+                                                   &mut template, &mut num_visuals);
+            display.check_errors().expect("Failed to call XGetVisualInfo");
+            assert!(!vi.is_null());
+            assert!(num_visuals == 1);
+
+            let vi_copy = ptr::read(vi as *const _);
+            (display.xlib.XFree)(vi as *mut _);
+            vi_copy
+        };
+
         let window = unsafe {
             let win = (display.xlib.XCreateWindow)(display.display, root, 0, 0, dimensions.0 as libc::c_uint,
-                dimensions.1 as libc::c_uint, 0, ffi::CopyFromParent, ffi::InputOutput as libc::c_uint,
-                ffi::CopyFromParent as *mut _, window_attributes,
+                dimensions.1 as libc::c_uint, 0, 32, ffi::InputOutput as libc::c_uint,
+                visual, window_attributes,
                 &mut set_win_attr);
             display.check_errors().expect("Failed to call XCreateWindow");
             win
