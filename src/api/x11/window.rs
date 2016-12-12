@@ -9,6 +9,7 @@ use std::sync::atomic::AtomicBool;
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 use std::os::raw::c_long;
+use std::os::raw::c_void;
 use std::thread;
 use std::time::Duration;
 
@@ -367,14 +368,15 @@ impl Window {
         }
 
         // finally creating the window
-        let visual = unsafe {
+        let visual: ffi::XVisualInfo = unsafe {
             let mut template: ffi::XVisualInfo = mem::zeroed();
             let mut num_visuals = 0;
-            template.visualid = 0x28;
+            template.visualid = 0x24;
             let vi = (display.xlib.XGetVisualInfo)(display.display, ffi::VisualIDMask,
                                                    &mut template, &mut num_visuals);
             display.check_errors().expect("Failed to call XGetVisualInfo");
             assert!(!vi.is_null());
+            //println!("Num found: {}", num_visuals);
             assert!(num_visuals == 1);
 
             println!("Visual found!");
@@ -384,14 +386,42 @@ impl Window {
             vi_copy
         };
 
+        /*let visual: ffi::XVisualInfo = unsafe {
+            let mut vi: ffi::XVisualInfo = mem::zeroed();
+            let vi_ptr: *mut ffi::XVisualInfo = &mut vi as *mut _ as *mut ffi::XVisualInfo;
+            let result = (display.xlib.XMatchVisualInfo)(display.display, screen_id, 32, ffi::TrueColor, vi_ptr);
+
+            assert!(result != 0);
+            println!("Visual match found: 0x{:x} class {} depth {}", vi.visualid, vi.class, vi.depth);
+
+            let vi_copy = ptr::read(&vi);
+            //(display.xlib.XFree)(&vi as *mut c_void);
+            vi_copy
+        };*/
+
+        set_win_attr.colormap = unsafe {
+            (display.xlib.XCreateColormap)(display.display, root as u64, visual.visual, ffi::AllocNone)
+        };
+
+        /*let window = unsafe {
+            let win = (display.xlib.XCreateWindow)(display.display, root, 0, 0, dimensions.0 as libc::c_uint,
+                dimensions.1 as libc::c_uint, 0, ffi::CopyFromParent, ffi::InputOutput as libc::c_uint,
+                ffi::CopyFromParent as *mut _, window_attributes,
+                &mut set_win_attr);
+            display.check_errors().expect("Failed to call XCreateWindow");
+            win
+        };*/
+
         let window = unsafe {
             let win = (display.xlib.XCreateWindow)(display.display, root, 0, 0, dimensions.0 as libc::c_uint,
-                dimensions.1 as libc::c_uint, 0, 32, ffi::InputOutput as libc::c_uint,
-                visual, window_attributes,
+                dimensions.1 as libc::c_uint, 0, visual.depth, ffi::InputOutput as libc::c_uint,
+                visual.visual, window_attributes,
                 &mut set_win_attr);
             display.check_errors().expect("Failed to call XCreateWindow");
             win
         };
+
+
 
         // set visibility
         if window_attrs.visible {
